@@ -3,6 +3,7 @@ package com.api.rekognition;
 import com.amazonaws.services.rekognition.AmazonRekognition;
 import com.amazonaws.services.rekognition.AmazonRekognitionAsyncClientBuilder;
 import com.amazonaws.services.rekognition.model.*;
+import com.api.rekognition.exception.RejectedRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -65,7 +66,8 @@ public class RekognitionService {
             return true;
         }
         logger.log(Level.INFO,"Documentación No Válida");
-        return false;
+        throw new RejectedRequest("Documentación No Válida");
+        //return false;
     }
     private static Float getIdCardLabelConfidence(DetectLabelsResult frontCardLabelResult) {
         return frontCardLabelResult.getLabels()
@@ -91,7 +93,7 @@ public class RekognitionService {
         //textDetections.forEach(System.out::println);
         if(textDetections.isEmpty()){
             logger.log(Level.WARNING,"Error en la extracción de información del frontal del documento");
-            return null;
+            throw new RejectedRequest("Error en la extracción de información del frontal del documento, la imagen no está bien recortada");
         }
         //TODO refactor -> mapper
         Pattern isDniRegex = Pattern.compile("^\\d{1,3}\\./?\\d{3}\\./?\\d{3}$");
@@ -123,7 +125,8 @@ public class RekognitionService {
         textDetections.forEach(System.out::println);
         if(textDetections.isEmpty()){
             logger.log(Level.WARNING,"Error en la extracción de información del dorso del documento");
-            return null;
+            throw new RejectedRequest("Error en la extracción de información del dorso del documento," +
+                    " la imagen no está bien recortada");
         }
         //TODO refactor -> mapper
         Pattern isDniRegex = Pattern.compile("^IDARG.*");
@@ -138,6 +141,11 @@ public class RekognitionService {
                 .collect(Collectors.groupingBy(dniOrName));
 
         System.out.println(identityCardInfo);
+
+        if(!identityCardInfo.containsKey("Name")){
+            throw new RejectedRequest("Error en la extracción de información del dorso del documento," +
+                    " la imagen no está bien recortada");
+        }
 
         //todo handle npe
         identityCardInfo.replace("Name",List.of(identityCardInfo.get("Name").get(0).split("<{1,2}")));
@@ -157,7 +165,7 @@ public class RekognitionService {
             return true;
         }else {
             logger.log(Level.INFO,"Las dos imágenes no pertenecen a un mismo documento");
-            return false;
+            throw new RejectedRequest("Las dos imágenes no pertenecen a un mismo documento");
         }
     }
     public boolean selfieMatchIdentityCardOwner(Image idFront, Image selfie) {
@@ -176,7 +184,7 @@ public class RekognitionService {
             }
         }
         logger.log(Level.INFO,"Las imágenes NO pertenecen a la misma persona");
-        return false;
+        throw new RejectedRequest("La Selfie no coincide con la documentación provista");
     }
 
 }

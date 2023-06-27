@@ -39,7 +39,7 @@ public class RekognitionService {
             if(imagesAreFromTheSameIdentityCard(frontIdCard,backIdCard)){
                 if (selfieMatchIdentityCardOwner(image, frontIdCard)){
                     return ResponseEntity.ok(
-                            new MessageResponse(400, "The provided documentation is valid"));
+                            new MessageResponse(200, "The provided documentation is valid"));
                 }
             }
         }
